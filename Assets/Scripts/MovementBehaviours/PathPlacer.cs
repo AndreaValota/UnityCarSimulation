@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+
+//Class mainly used to test the path and visualize the points in the scene 
 public class PathPlacer : MonoBehaviour {
 
     public float spacing = .1f;
@@ -9,6 +11,8 @@ public class PathPlacer : MonoBehaviour {
 
 	
 	void Start () {
+
+        //Placec spheres on the path on evenly spaced points
         Vector3[] points = FindObjectOfType<PathCreator>().path.CalculateEvenlySpacedPoints(spacing, resolution);
         foreach (Vector3 p in points)
         {

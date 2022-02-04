@@ -22,6 +22,7 @@ public class PathEditor : Editor {
     {
         base.OnInspectorGUI();
 
+        //Add GUI elements to manage the path
         EditorGUI.BeginChangeCheck();
 		if (GUILayout.Button("Create new"))
 		{
@@ -36,12 +37,13 @@ public class PathEditor : Editor {
             Path.IsClosed = isClosed;
         }
 
+        /*
         bool autoSetControlPoints = GUILayout.Toggle(Path.AutoSetControlPoints, "Auto Set Control Points");
         if (autoSetControlPoints != Path.AutoSetControlPoints)
         {
             Undo.RecordObject(creator, "Toggle auto set controls");
             Path.AutoSetControlPoints = autoSetControlPoints;
-        }
+        }*/
 
         if (EditorGUI.EndChangeCheck())
         {
@@ -60,6 +62,7 @@ public class PathEditor : Editor {
         Event guiEvent = Event.current;
         Vector3 mousePos = HandleUtility.GUIPointToWorldRay(guiEvent.mousePosition).origin;
 
+        //Add an anchor point pressing SHITF+Left click
         if (guiEvent.type == EventType.MouseDown && guiEvent.button == 0 && guiEvent.shift)
         {
             if (selectedSegmentIndex != -1)
@@ -67,13 +70,15 @@ public class PathEditor : Editor {
                 Undo.RecordObject(creator, "Split segment");
                 Path.SplitSegment(mousePos, selectedSegmentIndex);
             }
-            else if (!Path.IsClosed)
+            else 
+            if (!Path.IsClosed)
             {
                 Undo.RecordObject(creator, "Add segment");
                 Path.AddSegment(mousePos);
             }
         }
 
+        //Set all the points on the XZ plane pressing CTRL+Left click
         if (guiEvent.type == EventType.MouseDown && guiEvent.button == 0 && guiEvent.control)
         {
             Debug.Log("SetToXZPlane event activated");
@@ -81,6 +86,7 @@ public class PathEditor : Editor {
             Path.SetToXZPlane();
         }
 
+        //Delete anchor points using Right click
         if (guiEvent.type == EventType.MouseDown && guiEvent.button == 2)
         {
             float minDstToAnchor = creator.anchorDiameter * .5f;
@@ -129,6 +135,7 @@ public class PathEditor : Editor {
 
     void Draw()
     {
+        //Draw the bezier curves used to create the path
         for (int i = 0; i < Path.NumSegments; i++)
         {
             Vector3[] points = Path.GetPointsInSegment(i);

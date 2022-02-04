@@ -9,8 +9,6 @@ public class Path {
     List<Vector3> points;
     [SerializeField, HideInInspector]
     bool isClosed;
-    [SerializeField, HideInInspector]
-    bool autoSetControlPoints;
 
     public Path(Vector3 centre)
     {
@@ -45,41 +43,14 @@ public class Path {
 
 				if (isClosed)
 				{
+                    //If the path is closed, add the control points needed to create the bezier curve between the first and last anchor point
 					points.Add(points[points.Count - 1] * 2 - points[points.Count - 2]);
 					points.Add(points[0] * 2 - points[1]);
-					if (autoSetControlPoints)
-					{
-						AutoSetAnchorControlPoints(0);
-						AutoSetAnchorControlPoints(points.Count - 3);
-					}
 				}
 				else
 				{
 					points.RemoveRange(points.Count - 2, 2);
-					if (autoSetControlPoints)
-					{
-						AutoSetStartAndEndControls();
-					}
 				}
-            }
-        }
-    }
-
-    public bool AutoSetControlPoints
-    {
-        get
-        {
-            return autoSetControlPoints;
-        }
-        set
-        {
-            if (autoSetControlPoints != value)
-            {
-                autoSetControlPoints = value;
-                if (autoSetControlPoints)
-                {
-                    AutoSetAllControlPoints();
-                }
             }
         }
     }
@@ -100,38 +71,26 @@ public class Path {
         }
     }
 
+    //Add a new segment and all his anchor and control points
     public void AddSegment(Vector3 anchorPos)
     {
         points.Add(points[points.Count - 1] * 2 - points[points.Count - 2]);
         points.Add((points[points.Count - 1] + anchorPos) * .5f);
         points.Add(anchorPos);
-
-        if (autoSetControlPoints)
-        {
-            AutoSetAllAffectedControlPoints(points.Count - 1);
-        }
     }
 
+    //Set all the points on the XZ plane (set the Y value to 1)
     public void SetToXZPlane()
     {
         for (int i=0; i<points.Count; i++)
         {
             points[i] = new Vector3(points[i].x,1,points[i].z);
-            //Debug.Log("X: "+points[i].x + "Y: " + points[i].y + "Z: " + points[i].z);
         }
     }
 
     public void SplitSegment(Vector3 anchorPos, int segmentIndex)
     {
         points.InsertRange(segmentIndex * 3 + 2, new Vector3[] { Vector3.zero, anchorPos, Vector3.zero });
-        if (autoSetControlPoints)
-        {
-            AutoSetAllAffectedControlPoints(segmentIndex * 3 + 3);
-        }
-        else
-        {
-            AutoSetAnchorControlPoints(segmentIndex * 3 + 3);
-        }
     }
 
     public void DeleteSegment(int anchorIndex)
@@ -163,47 +122,40 @@ public class Path {
     }
 
     public void MovePoint(int i, Vector3 pos)
-    {
+    { 
         Vector3 deltaMove = pos - points[i];
 
-        if (i % 3 == 0 || !autoSetControlPoints) {
-            points[i] = pos;
+        points[i] = pos;
 
-            if (autoSetControlPoints)
+
+        if (i % 3 == 0)
+        {
+            if (i + 1 < points.Count || isClosed)
             {
-                AutoSetAllAffectedControlPoints(i);
+                points[LoopIndex(i + 1)] += deltaMove;
             }
-            else
+            if (i - 1 >= 0 || isClosed)
             {
+                points[LoopIndex(i - 1)] += deltaMove;
+            }
+        }
+        else
+        {
+            bool nextPointIsAnchor = (i + 1) % 3 == 0;
+            int correspondingControlIndex = (nextPointIsAnchor) ? i + 2 : i - 2;
+            int anchorIndex = (nextPointIsAnchor) ? i + 1 : i - 1;
 
-                if (i % 3 == 0)
-                {
-                    if (i + 1 < points.Count || isClosed)
-                    {
-                        points[LoopIndex(i + 1)] += deltaMove;
-                    }
-                    if (i - 1 >= 0 || isClosed)
-                    {
-                        points[LoopIndex(i - 1)] += deltaMove;
-                    }
-                }
-                else
-                {
-                    bool nextPointIsAnchor = (i + 1) % 3 == 0;
-                    int correspondingControlIndex = (nextPointIsAnchor) ? i + 2 : i - 2;
-                    int anchorIndex = (nextPointIsAnchor) ? i + 1 : i - 1;
-
-                    if (correspondingControlIndex >= 0 && correspondingControlIndex < points.Count || isClosed)
-                    {
-                        float dst = (points[LoopIndex(anchorIndex)] - points[LoopIndex(correspondingControlIndex)]).magnitude;
-                        Vector3 dir = (points[LoopIndex(anchorIndex)] - pos).normalized;
-                        points[LoopIndex(correspondingControlIndex)] = points[LoopIndex(anchorIndex)] + dir * dst;
-                    }
-                }
+            if (correspondingControlIndex >= 0 && correspondingControlIndex < points.Count || isClosed)
+            {
+                float dst = (points[LoopIndex(anchorIndex)] - points[LoopIndex(correspondingControlIndex)]).magnitude;
+                Vector3 dir = (points[LoopIndex(anchorIndex)] - pos).normalized;
+                points[LoopIndex(correspondingControlIndex)] = points[LoopIndex(anchorIndex)] + dir * dst;
             }
         }
     }
 
+
+    //Calculate points on the path evenly spaced based on the spacing parameter 
     public Vector3[] CalculateEvenlySpacedPoints(float spacing, float resolution = 1)
     {
         List<Vector3> evenlySpacedPoints = new List<Vector3>();
@@ -213,6 +165,7 @@ public class Path {
 
         for (int segmentIndex = 0; segmentIndex < NumSegments; segmentIndex++)
         {
+            //Estimate curve lenght and computer the number of 
             Vector3[] p = GetPointsInSegment(segmentIndex);
             float controlNetLength = Vector3.Distance(p[0], p[1]) + Vector3.Distance(p[1], p[2]) + Vector3.Distance(p[2], p[3]);
             float estimatedCurveLength = Vector3.Distance(p[0], p[3]) + controlNetLength / 2f;
@@ -240,69 +193,6 @@ public class Path {
         return evenlySpacedPoints.ToArray();
     }
 
-
-    void AutoSetAllAffectedControlPoints(int updatedAnchorIndex)
-    {
-        for (int i = updatedAnchorIndex-3; i <= updatedAnchorIndex +3; i+=3)
-        {
-            if (i >= 0 && i < points.Count || isClosed)
-            {
-                AutoSetAnchorControlPoints(LoopIndex(i));
-            }
-        }
-
-        AutoSetStartAndEndControls();
-    }
-
-    void AutoSetAllControlPoints()
-    {
-        for (int i = 0; i < points.Count; i+=3)
-        {
-            AutoSetAnchorControlPoints(i);
-        }
-
-        AutoSetStartAndEndControls();
-    }
-
-    void AutoSetAnchorControlPoints(int anchorIndex)
-    {
-        Vector3 anchorPos = points[anchorIndex];
-        Vector3 dir = Vector3.zero;
-        float[] neighbourDistances = new float[2];
-
-        if (anchorIndex - 3 >= 0 || isClosed)
-        {
-            Vector3 offset = points[LoopIndex(anchorIndex - 3)] - anchorPos;
-            dir += offset.normalized;
-            neighbourDistances[0] = offset.magnitude;
-        }
-		if (anchorIndex + 3 >= 0 || isClosed)
-		{
-			Vector3 offset = points[LoopIndex(anchorIndex + 3)] - anchorPos;
-			dir -= offset.normalized;
-			neighbourDistances[1] = -offset.magnitude;
-		}
-
-        dir.Normalize();
-
-        for (int i = 0; i < 2; i++)
-        {
-            int controlIndex = anchorIndex + i * 2 - 1;
-            if (controlIndex >= 0 && controlIndex < points.Count || isClosed)
-            {
-                points[LoopIndex(controlIndex)] = anchorPos + dir * neighbourDistances[i] * .5f;
-            }
-        }
-    }
-
-    void AutoSetStartAndEndControls()
-    {
-        if (!isClosed)
-        {
-            points[1] = (points[0] + points[2]) * .5f;
-            points[points.Count - 2] = (points[points.Count - 1] + points[points.Count - 3]) * .5f;
-        }
-    }
 
     int LoopIndex(int i)
     {

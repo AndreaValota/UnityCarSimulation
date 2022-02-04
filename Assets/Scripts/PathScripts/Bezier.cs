@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+//Class used to create the bezier curve used to generate the path
 public static class Bezier {
 
     public static Vector3 EvaluateQuadratic(Vector3 a, Vector3 b, Vector3 c, float t)
