@@ -79,15 +79,6 @@ public class Path {
         points.Add(anchorPos);
     }
 
-    //Set all the points on the XZ plane (set the Y value to 1)
-    public void SetToXZPlane()
-    {
-        for (int i=0; i<points.Count; i++)
-        {
-            points[i] = new Vector3(points[i].x,1,points[i].z);
-        }
-    }
-
     public void SplitSegment(Vector3 anchorPos, int segmentIndex)
     {
         points.InsertRange(segmentIndex * 3 + 2, new Vector3[] { Vector3.zero, anchorPos, Vector3.zero });
@@ -154,6 +145,14 @@ public class Path {
         }
     }
 
+    //Set all the points on the XZ plane (set the Y value to 1)
+    public void SetToXZPlane()
+    {
+        for (int i = 0; i < points.Count; i++)
+        {
+            points[i] = new Vector3(points[i].x, 1, points[i].z);
+        }
+    }
 
     //Calculate points on the path evenly spaced based on the spacing parameter 
     public Vector3[] CalculateEvenlySpacedPoints(float spacing, float resolution = 1)

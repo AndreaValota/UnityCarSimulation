@@ -7,7 +7,7 @@ public class ChaseTheRabbit : PathFollowing
 {
     public string pathName = "MonzaPath";
     public float spacing = 5;
-    public float resolution = 1;
+    private float resolution = 1;
     public int predictionOffset = 5;
 
     private Path path;

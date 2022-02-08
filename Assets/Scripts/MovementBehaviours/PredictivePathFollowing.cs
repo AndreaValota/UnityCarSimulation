@@ -6,7 +6,7 @@ public class PredictivePathFollowing : PathFollowing
 {
     public string pathName = "MonzaPath";
     public float spacing = 5;
-    public float resolution = 1;
+    private float resolution = 1;
     public int predictionOffset = 5;
     public float predictionTime = 0.1f;
     public float pathRadius = 3f;
