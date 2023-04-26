@@ -53,9 +53,9 @@ public class PredictivePathFollowing : PathFollowing
         return destination;
     }
 
-    public void OnDrawGizmos()
+    /*public void OnDrawGizmos()
     {
         //Draws the destination as a circle 
         UnityEditor.Handles.DrawSolidDisc(destination, new Vector3(0.0f, 1.0f, 0.0f), 5);
-    }
+    }*/
 }
